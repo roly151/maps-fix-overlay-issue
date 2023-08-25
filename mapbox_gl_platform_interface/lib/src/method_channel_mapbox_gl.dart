@@ -302,8 +302,13 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
         <String, Object?>{
           'left': rect.left,
           'top': rect.top,
+          //specific arguments needed for android rect function
           'right': rect.right,
           'bottom': rect.bottom,
+          //specific arguments needed for iOS rect function
+          'width': rect.width,
+          'height': rect.height,
+          //arguments for mapbox
           'layerIds': layerIds,
           'filter': filter,
         },
@@ -499,6 +504,16 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
     try {
       return await _channel.invokeMethod('style#setFilter',
           <String, Object>{'layerId': layerId, 'filter': jsonEncode(filter)});
+    } on PlatformException catch (e) {
+      return new Future.error(e);
+    }
+  }
+
+  @override
+  Future<void> setVisibility(String layerId, bool isVisible) async {
+    try {
+      return await _channel.invokeMethod('style#setVisibility',
+          <String, Object>{'layerId': layerId, 'isVisible': isVisible});
     } on PlatformException catch (e) {
       return new Future.error(e);
     }

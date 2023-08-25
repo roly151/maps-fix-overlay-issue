@@ -4,6 +4,9 @@
 
 package com.mapbox.mapboxgl;
 
+import static com.mapbox.mapboxsdk.style.layers.Property.*;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.visibility;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -912,6 +915,7 @@ final class MapboxMapController
 
           Expression filterExpression = parseFilter(filter);
 
+          removeLayer(layerId);
           addSymbolLayer(
               layerId,
               sourceId,
@@ -942,6 +946,7 @@ final class MapboxMapController
 
           Expression filterExpression = parseFilter(filter);
 
+          removeLayer(layerId);
           addLineLayer(
               layerId,
               sourceId,
@@ -972,6 +977,7 @@ final class MapboxMapController
 
           Expression filterExpression = parseFilter(filter);
 
+          removeLayer(layerId);
           addFillLayer(
               layerId,
               sourceId,
@@ -1003,6 +1009,7 @@ final class MapboxMapController
 
           Expression filterExpression = parseFilter(filter);
 
+          removeLayer(layerId);
           addFillExtrusionLayer(
               layerId,
               sourceId,
@@ -1033,6 +1040,7 @@ final class MapboxMapController
 
           Expression filterExpression = parseFilter(filter);
 
+          removeLayer(layerId);
           addCircleLayer(
               layerId,
               sourceId,
@@ -1057,6 +1065,8 @@ final class MapboxMapController
           final Double maxzoom = call.argument("maxzoom");
           final PropertyValue[] properties =
               LayerPropertyConverter.interpretRasterLayerProperties(call.argument("properties"));
+
+          removeLayer(layerId);
           addRasterLayer(
               layerId,
               sourceId,
@@ -1281,8 +1291,7 @@ final class MapboxMapController
                 null);
           }
           String layerId = call.argument("layerId");
-          style.removeLayer(layerId);
-          interactiveFeatureLayerIds.remove(layerId);
+          removeLayer(layerId);
 
           result.success(null);
           break;
@@ -1322,6 +1331,24 @@ final class MapboxMapController
                 String.format("Layer '%s' does not support filtering.", layerId),
                 null);
             break;
+          }
+
+          result.success(null);
+          break;
+        }
+      case "style#setVisibility":
+        {
+          if (style == null) {
+            result.error(
+                "STYLE IS NULL",
+                "The style is null. Has onStyleLoaded() already been invoked?",
+                null);
+          }
+          String layerId = call.argument("layerId");
+          boolean isVisible = call.argument("isVisible");
+          Layer layer = style.getLayer(layerId);
+          if (layer != null) {
+            layer.setProperties(isVisible ? visibility(VISIBLE) : visibility(NONE));
           }
 
           result.success(null);
@@ -1956,6 +1983,13 @@ final class MapboxMapController
       return false;
     }
     return true;
+  }
+
+  void removeLayer(String layerId) {
+    if (style != null && layerId != null) {
+      style.removeLayer(layerId);
+      interactiveFeatureLayerIds.remove(layerId);
+    }
   }
 
   void onMoveEnd(MoveGestureDetector detector) {

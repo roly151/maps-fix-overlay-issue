@@ -641,7 +641,13 @@ class MapboxWebGlPlatform extends MapboxGlPlatform
     }
     _interactiveFeatureLayerIds.clear();
 
-    _map.setStyle(styleString);
+    try {
+      final styleJson = jsonDecode(styleString ?? '');
+      final styleJsObject = jsUtil.jsify(styleJson);
+      _map.setStyle(styleJsObject);
+    } catch (_) {
+      _map.setStyle(styleString);
+    }
     // catch style loaded for later style changes
     if (_mapReady) {
       _map.once("styledata", _onStyleLoaded);
@@ -686,13 +692,24 @@ class MapboxWebGlPlatform extends MapboxGlPlatform
 
   @override
   Future<void> removeLayer(String layerId) async {
-    _interactiveFeatureLayerIds.remove(layerId);
-    _map.removeLayer(layerId);
+    if (_map.getLayer(layerId) != null) {
+      _interactiveFeatureLayerIds.remove(layerId);
+      _map.removeLayer(layerId);
+    }
   }
 
   @override
   Future<void> setFilter(String layerId, dynamic filter) async {
     _map.setFilter(layerId, filter);
+  }
+
+  @override
+  Future<void> setVisibility(String layerId, bool isVisible) async {
+    final layer = _map.getLayer(layerId);
+    if (layer != null) {
+      _map.setLayoutProperty(
+          layerId, 'visibility', isVisible ? 'visible' : 'none');
+    }
   }
 
   @override
@@ -877,6 +894,8 @@ class MapboxWebGlPlatform extends MapboxGlPlatform
         properties.entries.where((entry) => isLayoutProperty(entry.key)));
     final paint = Map.fromEntries(
         properties.entries.where((entry) => !isLayoutProperty(entry.key)));
+
+    removeLayer(layerId);
 
     _map.addLayer({
       'id': layerId,
